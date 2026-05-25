@@ -1,7 +1,7 @@
 {
   "include": [
-    "frontend/src/**/*.ts",
-    "frontend/src/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     "vite.config.ts",
     "eslint.config.js"
   ],
@@ -26,7 +26,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./frontend/src/*"]
+      "@/*": ["./src/*"]
     }
   }
 }
+
