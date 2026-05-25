@@ -39,7 +39,8 @@ function FeedbackPage() {
       status: "open",
       created_at: new Date().toISOString(),
     };
-    const { error } = await supabase.from("feedback").insert(row);
+    const { id: _id, ...dbRow } = row;
+    const { error } = await supabase.from("feedback").insert(dbRow);
     if (error) addLocalItem("feedback", row);
     setLoading(false);
     toast.success(lang === "ta" ? "கருத்து சமர்ப்பிக்கப்பட்டது" : "Feedback submitted");

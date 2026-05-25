@@ -97,3 +97,24 @@ cd backend
 npm install
 npm run dev
 ```
+
+## Supabase Setup
+
+1. Open the Supabase SQL editor for `https://dgrtixahrbesogmtwxai.supabase.co`.
+2. Run `backend/supabase/schema.sql`.
+3. Run `backend/supabase/policies.sql`.
+4. Run `backend/supabase/seed.sql` to insert starter schools, materials, videos, events, and notifications.
+5. Copy `backend/.env.example` to `backend/.env` and set `SUPABASE_SERVICE_ROLE_KEY` from Supabase Project Settings > API.
+
+Backend API routes:
+
+```txt
+GET  /health
+GET  /health/db
+GET  /api/schools
+GET  /api/materials?class=10
+GET  /api/videos?class=10&subject=Science
+GET  /api/events?district=Madurai
+GET  /api/notifications
+POST /api/feedback
+```

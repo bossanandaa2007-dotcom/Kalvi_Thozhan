@@ -202,7 +202,8 @@ function AdminPage() {
       created_at: new Date().toISOString(),
       read_status: false,
     };
-    const { error } = await supabase.from("notifications").insert(row);
+    const { id: _id, read_status: _readStatus, ...dbRow } = row;
+    const { error } = await supabase.from("notifications").insert(dbRow);
     if (error) addLocalItem("notifications", row);
     toast.success(lang === "ta" ? "அறிவிப்பு அனுப்பப்பட்டது" : "Notice sent");
     setTitle("");
@@ -222,8 +223,22 @@ function AdminPage() {
       created_at: new Date().toISOString(),
     };
     const table = resource.type === "video" ? "videos" : "materials";
-    const payload = resource.type === "video" ? { ...row, duration_minutes: 0 } : row;
-    const { error } = await supabase.from(table).insert(payload);
+    const payload =
+      resource.type === "video"
+        ? {
+            id: row.id,
+            title: row.title,
+            class: row.class,
+            subject: row.subject,
+            chapter: row.chapter,
+            url: row.url,
+            source: row.source,
+            created_at: row.created_at,
+            duration_minutes: 0,
+          }
+        : row;
+    const { id: _id, ...dbPayload } = payload;
+    const { error } = await supabase.from(table).insert(dbPayload);
     if (error) addLocalItem(table, payload);
     toast.success(lang === "ta" ? "உள்ளடக்கம் சேர்க்கப்பட்டது" : "Content added");
     setResource({ title: "", class: "10", subject: "", chapter: "", type: "textbook", url: "" });
@@ -239,9 +254,11 @@ function AdminPage() {
       registration_url: "",
       eligibility: `Class ${eventForm.target_class}`,
     };
+    const { eligibility: _eligibility, ...eventDbPayloadWithId } = row;
+    const { id: _eventId, ...eventInsertPayload } = eventDbPayloadWithId;
     const request = editingEventId
-      ? supabase.from("events").update(row).eq("id", editingEventId)
-      : supabase.from("events").insert(row);
+      ? supabase.from("events").update(eventDbPayloadWithId).eq("id", editingEventId)
+      : supabase.from("events").insert(eventInsertPayload);
     const { error } = await request;
     if (error) {
       if (editingEventId) updateLocalItem("events", editingEventId, row);
