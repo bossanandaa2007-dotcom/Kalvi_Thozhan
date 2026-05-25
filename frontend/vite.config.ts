@@ -3,21 +3,19 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import { cloudflare } from "@cloudflare/vite-plugin";
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(() => ({
   resolve: {
     alias: {
-      "@": `${process.cwd()}/frontend/src`,
+      "@": `${process.cwd()}/src`,
     },
     dedupe: ["react", "react-dom", "@tanstack/react-query", "@tanstack/query-core"],
   },
   plugins: [
     tailwindcss(),
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
-    command === "build" ? cloudflare({ viteEnvironment: { name: "ssr" } }) : undefined,
     tanstackStart({
-      srcDirectory: "frontend/src",
+      srcDirectory: "src",
       server: { entry: "server" },
       importProtection: {
         behavior: "error",
