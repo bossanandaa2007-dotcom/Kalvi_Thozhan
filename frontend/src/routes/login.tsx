@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLang } from "@/lib/lang-context";
 import { supabase } from "@/integrations/supabase/client";
-import { mobileToPhone, useAuth, isValidMobile } from "@/lib/auth-context";
+import { mobileToEmail, useAuth, isValidMobile } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/lang-toggle";
 import { GraduationCap, ShieldCheck } from "lucide-react";
@@ -23,12 +23,10 @@ function LoginPage() {
   const { setMockAccount } = useAuth();
   const nav = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
 
   const [mobile, setMobile] = useState("");
   const [emisLogin, setEmisLogin] = useState("");
   const [studentPw, setStudentPw] = useState("");
-  const [otp, setOtp] = useState("");
 
   const [email, setEmail] = useState("");
   const [adminPw, setAdminPw] = useState("");
@@ -93,23 +91,23 @@ function LoginPage() {
       return;
     }
 
-    const phone = mobileToPhone(phoneToUse);
-    if (!otpSent) {
-      const { error } = await supabase.auth.signInWithOtp({ phone });
+    if (!studentPw || studentPw.length < 6) {
       setLoading(false);
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      setOtpSent(true);
-      toast.success(lang === "ta" ? "OTP அனுப்பப்பட்டது" : "OTP sent");
+      toast.error(
+        lang === "ta"
+          ? "கடவுச்சொல் குறைந்தது 6 எழுத்துகள் இருக்க வேண்டும்"
+          : "Enter the password you used during signup",
+      );
       return;
     }
 
-    const { data, error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: mobileToEmail(phoneToUse),
+      password: studentPw,
+    });
     setLoading(false);
     if (error) {
-      toast.error(t("invalidCreds"));
+      toast.error(error.message || t("invalidCreds"));
       return;
     }
     if (data.user) await logActivity(data.user.id);
@@ -175,30 +173,18 @@ function LoginPage() {
               <form onSubmit={handleStudentLogin} className="space-y-4">
                 <div>
                   <Label htmlFor="emis">{t("emis")}</Label>
-                  <Input id="emis" value={emisLogin} onChange={(e) => { setEmisLogin(e.target.value); setOtpSent(false); }} />
+                  <Input id="emis" value={emisLogin} onChange={(e) => { setEmisLogin(e.target.value); }} />
                 </div>
                 <div>
                   <Label htmlFor="mobile">{t("mobileLogin")}</Label>
-                  <Input id="mobile" inputMode="tel" value={mobile} onChange={(e) => { setMobile(e.target.value); setOtpSent(false); }} />
+                  <Input id="mobile" inputMode="tel" value={mobile} onChange={(e) => { setMobile(e.target.value); }} />
                 </div>
                 <div>
-                  <Label htmlFor="spw">{lang === "ta" ? "Mock கடவுச்சொல்" : "Mock password"}</Label>
-                  <Input id="spw" type="password" value={studentPw} onChange={(e) => setStudentPw(e.target.value)} placeholder={lang === "ta" ? "Mock கணக்குகளுக்கு மட்டும்" : "Only for mock accounts"} />
+                  <Label htmlFor="spw">{t("password")}</Label>
+                  <Input id="spw" type="password" value={studentPw} onChange={(e) => setStudentPw(e.target.value)} placeholder={lang === "ta" ? "பதிவு செய்த கடவுச்சொல்" : "Password used during signup"} />
                 </div>
-                {otpSent && (
-                  <div>
-                    <Label htmlFor="otp">{t("otp")}</Label>
-                    <Input id="otp" inputMode="numeric" value={otp} onChange={(e) => setOtp(e.target.value)} required />
-                  </div>
-                )}
                 <Button type="submit" className="h-12 w-full text-base font-semibold" disabled={loading}>
-                  {loading
-                    ? t("loading")
-                    : otpSent
-                      ? t("verifyOtp")
-                      : lang === "ta"
-                        ? "உள்நுழை"
-                        : "Login"}
+                  {loading ? t("loading") : lang === "ta" ? "உள்நுழை" : "Login"}
                 </Button>
                 <p className="text-center text-sm text-muted-foreground">
                   {t("noAccount")} <Link to="/signup" className="font-semibold text-primary">{t("signup")}</Link>

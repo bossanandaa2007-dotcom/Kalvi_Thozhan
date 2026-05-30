@@ -7,6 +7,7 @@ dist-ssr/
 .output/
 .vinxi/
 .tanstack/
+backend/supabase/.temp/
 
 # Environment files
 .env

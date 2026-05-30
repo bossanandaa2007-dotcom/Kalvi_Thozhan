@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "supabase": "supabase",
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link --project-ref dgrtixahrbesogmtwxai",
+    "supabase:db:push": "supabase db push"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.0",
@@ -12,5 +16,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "supabase": "^2.98.1"
+  }
 }

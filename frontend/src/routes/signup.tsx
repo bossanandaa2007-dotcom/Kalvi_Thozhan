@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useLang } from "@/lib/lang-context";
 import { supabase } from "@/integrations/supabase/client";
-import { mobileToEmail, mobileToPhone, useAuth, isValidMobile } from "@/lib/auth-context";
+import { mobileToEmail, useAuth, isValidMobile } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/lang-toggle";
 import { ArrowLeft, Loader2, MapPin, Search } from "lucide-react";
@@ -88,13 +88,11 @@ function SignupPage() {
   const { setMockAccount } = useAuth();
   const nav = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
 
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [mobile, setMobile] = useState("");
   const [emis, setEmis] = useState("");
-  const [otp, setOtp] = useState("");
   const [district, setDistrict] = useState("");
   const [schoolType, setSchoolType] = useState<"Government" | "Aided">("Government");
   const [school, setSchool] = useState("");
@@ -186,33 +184,52 @@ function SignupPage() {
       return;
     }
 
-    if (password && password.toLowerCase().startsWith("mock")) {
+    const authPassword = password.trim();
+    if (authPassword && authPassword.toLowerCase().startsWith("mock")) {
       createMockAccount();
       return;
     }
 
-    setLoading(true);
-    const phone = mobileToPhone(mobile);
-    if (!otpSent) {
-      const { error } = await supabase.auth.signInWithOtp({ phone });
-      setLoading(false);
-      if (error) {
-        createMockAccount();
-        return;
-      }
-      setOtpSent(true);
-      toast.success(lang === "ta" ? "OTP அனுப்பப்பட்டது" : "OTP sent");
+    if (authPassword.length < 6) {
+      toast.error(
+        lang === "ta"
+          ? "கடவுச்சொல் குறைந்தது 6 எழுத்துகள் இருக்க வேண்டும்"
+          : "Password must be at least 6 characters",
+      );
       return;
     }
 
-    const { data, error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
+    setLoading(true);
+    const email = mobileToEmail(mobile);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: authPassword,
+      options: {
+        data: {
+          full_name: name,
+          emis_number: emis || null,
+          mobile_number: mobile,
+          district,
+          school_name: selectedSchool,
+          class: klass,
+          section,
+          language_preference: lang,
+          role: "student",
+          location_label: location?.label ?? null,
+          location_latitude: location?.latitude ?? null,
+          location_longitude: location?.longitude ?? null,
+          location_place_id: location?.placeId ?? null,
+        },
+      },
+    });
+
     if (error || !data.user) {
       setLoading(false);
       toast.error(error?.message ?? t("invalidCreds"));
       return;
     }
 
-    await supabase.from("profiles").upsert({
+    const profileRow = {
       id: data.user.id,
       full_name: name,
       emis_number: emis || null,
@@ -227,14 +244,23 @@ function SignupPage() {
       location_latitude: location?.latitude ?? null,
       location_longitude: location?.longitude ?? null,
       location_place_id: location?.placeId ?? null,
-    });
-    await supabase.from("user_roles").upsert({
+    };
+    const roleRow = {
       user_id: data.user.id,
       role: "student",
       district,
-    });
+    };
+
+    await supabase.from("profiles").upsert(profileRow);
+    await supabase.from("user_roles").upsert(roleRow, { onConflict: "user_id,role" });
     setLoading(false);
-    toast.success(t("signupSuccess"));
+    toast.success(
+      data.session
+        ? t("signupSuccess")
+        : lang === "ta"
+          ? "கணக்கு உருவாக்கப்பட்டது. உள்நுழைவதற்கு முன் மின்னஞ்சல் உறுதிப்படுத்தல் தேவைப்படலாம்."
+          : "Account created. Email confirmation may be required before login.",
+    );
     nav({ to: "/home" });
   };
 
@@ -263,20 +289,20 @@ function SignupPage() {
                 value={mobile}
                 onChange={(e) => {
                   setMobile(e.target.value);
-                  setOtpSent(false);
                 }}
+              />
+            </Field>
+            <Field label={t("password")} required>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
               />
             </Field>
             <Field label={t("emis")}>
               <Input value={emis} onChange={(e) => setEmis(e.target.value)} />
             </Field>
-
-
-            {otpSent && (
-              <Field label={t("otp")} required>
-                <Input inputMode="numeric" value={otp} onChange={(e) => setOtp(e.target.value)} />
-              </Field>
-            )}
 
             <Field label={t("district")} required>
               <Select
@@ -378,13 +404,7 @@ function SignupPage() {
               className="h-12 w-full text-base font-semibold"
               disabled={loading}
             >
-              {loading
-                ? t("loading")
-                : otpSent
-                  ? t("verifyOtp")
-                  : lang === "ta"
-                    ? "பதிவு செய்க"
-                    : "Register"}
+              {loading ? t("loading") : lang === "ta" ? "பதிவு செய்க" : "Register"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               {t("alreadyAccount")}{" "}
